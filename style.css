@@ -1,0 +1,188 @@
+:root {
+    --primary: #00d1b2;
+    --bg: #121212;
+    --text: #f5f5f5;
+    --panel: #1e1e1e;
+  }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    margin: 5%;
+    padding: 30px 15px;
+    background-color: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  h2 {
+    font-weight: 600;
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: var(--primary);
+    text-align: center;
+  }
+
+  textarea {
+    width: 100%;
+    max-width: 800px;
+    height: 120px;
+    background: var(--panel);
+    border: none;
+    padding: 15px;
+    font-size: 18px;
+    border-radius: 10px;
+    color: var(--text);
+    margin-bottom: 20px;
+    resize: none;
+    outline: none;
+    box-shadow: 0 0 8px rgba(0,0,0,0.4);
+  }
+
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  button {
+    background: var(--primary);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+
+  button:hover {
+    background-color: #00b89c;
+    transform: scale(1.03);
+  }
+
+  #scrollContainer {
+    width: 100%;
+    max-width: 800px;
+    height: 50px;
+    overflow: hidden;
+    background-color: var(--panel);
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 22px;
+    color: #f5f5f5;
+    margin-bottom: 20px;
+  }
+
+  #scrollText {
+    white-space: nowrap;
+    display: inline-block;
+    transition: transform 0.4s ease;
+  }
+
+  .word {
+    padding: 0 6px;
+  }
+
+  .active {
+    background-color: var(--primary);
+    color: #121212;
+    border-radius: 4px;
+    animation: pulse 0.4s ease-in-out;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  #status {
+    margin-top: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #ffc107;
+    text-align: center;
+  }
+
+  .speed-control {
+    margin-top: -10px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #ccc;
+    font-size: 14px;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 160px;
+    height: 6px;
+    border-radius: 4px;
+    background: #444;
+    outline: none;
+    transition: background 0.3s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 0 4px #00d1b2;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    body {
+      padding: 20px 10px;
+    }
+
+    textarea {
+      font-size: 16px;
+      height: 100px;
+      padding: 12px;
+    }
+
+    #scrollContainer {
+      font-size: 18px;
+      height: 40px;
+      padding: 8px;
+    }
+
+    button {
+      font-size: 14px;
+      padding: 10px 16px;
+    }
+
+    input[type="range"] {
+      width: 120px;
+    }
+
+    h2 {
+      font-size: 22px;
+    }
+
+    .speed-control {
+      font-size: 12px;
+    }
+  }
