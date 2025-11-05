@@ -1,3 +1,26 @@
+const langSelect = document.getElementById('languageSwitcher');
+
+function setLanguage(lang) {
+  const t = translations[lang];
+
+  document.getElementById('textInput').value = t.textarea;
+  document.querySelector('.buttons button:nth-child(1)').textContent = t.loadBtn;
+  document.querySelector('.buttons button:nth-child(2)').innerHTML = `<i class="fa-solid fa-play"></i> ${t.playBtn}`;
+  document.querySelector('.buttons button:nth-child(3)').innerHTML = `<i class="fa-solid fa-stop"></i> ${t.stopBtn}`;
+  document.querySelector('.buttons button:nth-child(4)').innerHTML = `<i class="fa-solid fa-broom"></i> ${t.clearBtn}`;
+  document.getElementById('rateValue').previousSibling.textContent = `${t.speedLabel} : `; // si tu veux changer label vitesse
+  setStatus(t.statusReady);
+}
+
+// Détecter le changement de langue
+langSelect.addEventListener('change', (e) => {
+  setLanguage(e.target.value);
+});
+
+// Initialiser la langue par défaut
+setLanguage('en');
+
+
 const synth = window.speechSynthesis;
 let utterance;
 let words = [];
@@ -43,7 +66,7 @@ function prepareText() {
     scrollText.appendChild(span);
   });
 
-  setStatus("Texte chargé.");
+  setStatus(translations[langSelect.value].statusReady);
 }
 
 function speak() {
@@ -70,7 +93,7 @@ function speak() {
   stop();
 
   utterance = new SpeechSynthesisUtterance(originalText);
-  utterance.lang = "en-US";
+  utterance.lang = langSelect.value === "fr" ? "fr-FR" : "en-US";
   utterance.rate = currentRate;
 
   // Forcer une voix Google (si dispo)
@@ -87,30 +110,45 @@ function speak() {
   };
 
   utterance.onstart = () => {
-    setStatus("Lecture en cours...");
-  };
+  setStatus(translations[langSelect.value].statusPlaying);
+};
 
-  utterance.onend = () => {
-    setStatus("Lecture terminée.");
-    clearHighlight();
-  };
+utterance.onend = () => {
+  setStatus(translations[langSelect.value].statusFinished);
+};
 
   synth.speak(utterance);
 }
 
 function highlightWord(charIndex) {
   clearHighlight();
-  let currentText = originalText.slice(0, charIndex);
-  let wordIndex = currentText.trim().split(/\s+/).length - 1;
+
+  if (!originalText) return;
+
+  // Trouver le mot courant en comparant la position charIndex
+  let total = 0;
+  let wordIndex = 0;
+
+  for (let i = 0; i < words.length; i++) {
+    total += words[i].length + 1; // +1 pour l'espace
+    if (charIndex < total) {
+      wordIndex = i;
+      break;
+    }
+  }
 
   const span = document.querySelector(`[data-index="${wordIndex}"]`);
-  if (span) {
-    span.classList.add("active");
+  if (!span) return;
 
-    // Scroll auto pour que le mot soit visible
-    const offset = span.offsetLeft - scrollContainer.offsetLeft;
-    scrollText.style.transform = `translateX(-${offset}px)`;
-  }
+  // Ajouter la classe active
+  span.classList.add("active");
+
+  // Calcul du scroll pour centrer le mot dans le conteneur
+  const containerWidth = scrollContainer.offsetWidth;
+  const spanOffset = span.offsetLeft + span.offsetWidth / 2;
+  const scrollPos = spanOffset - containerWidth / 2;
+
+  scrollText.style.transform = `translateX(${-Math.max(0, scrollPos)}px)`;
 }
 
 function clearHighlight() {
@@ -122,7 +160,7 @@ function clearHighlight() {
 function stop() {
   synth.cancel();
   clearHighlight();
-  setStatus("Lecture stoppée.");
+setStatus(translations[langSelect.value].statusStopped);
 }
 
 function clearText() {
@@ -130,7 +168,7 @@ function clearText() {
   document.getElementById("textInput").value = "";
   scrollText.innerHTML = "";
   words = [];
-  setStatus("Texte effacé.");
+setStatus(translations[langSelect.value].statusCleared);
 }
 
 function setStatus(text) {

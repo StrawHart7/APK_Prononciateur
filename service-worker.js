@@ -1,7 +1,8 @@
-const CACHE_NAME = "prononciateur-cache-v1";
+const CACHE_NAME = "prononciateur-cache-v3";
 const FILES_TO_CACHE = [
-  "/", // <-- important pour le root
+  "/",
   "/index.html",
+  "/offline.html",
   "/style.css",
   "/script.js",
   "/manifest.json",
@@ -9,7 +10,7 @@ const FILES_TO_CACHE = [
   "/assets/icon-512x512.png"
 ];
 
-// Installation : on met les fichiers en cache
+// Installation : mettre en cache les fichiers
 self.addEventListener("install", (evt) => {
   evt.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -35,11 +36,19 @@ self.addEventListener("activate", (evt) => {
   self.clients.claim();
 });
 
-// Fetch : réponse depuis le cache ou le réseau
+// Fetch : affiche la page offline si échec de réseau
 self.addEventListener("fetch", (evt) => {
   evt.respondWith(
-    caches.match(evt.request).then((response) => {
-      return response || fetch(evt.request);
-    })
+    fetch(evt.request)
+      .then((response) => {
+        return response;
+      })
+      .catch(() => {
+        if (evt.request.mode === "navigate") {
+          return caches.match("/offline.html");
+        } else {
+          return caches.match(evt.request);
+        }
+      })
   );
 });

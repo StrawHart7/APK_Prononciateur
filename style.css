@@ -101,6 +101,52 @@
     animation: pulse 0.4s ease-in-out;
   }
 
+  /* Style global du select */
+#languageSwitcher {
+  background-color: var(--panel);
+  color: var(--text);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+}
+
+/* Hover et focus */
+#languageSwitcher:hover,
+#languageSwitcher:focus {
+  background-color: var(--primary);
+  color: var(--bg);
+  transform: scale(1.03);
+}
+
+/* Pour que la flèche native soit mieux visible */
+#languageSwitcher option {
+  background-color: var(--panel);
+  color: var(--text);
+}
+
+/* Pour mobile ou petits écrans */
+@media (max-width: 600px) {
+  #languageSwitcher {
+    font-size: 14px;
+    padding: 6px 10px;
+  }
+}
+
+#scrollText {
+  white-space: nowrap;
+  display: inline-block;
+  transition: transform 0.25s ease; /* plus rapide et plus fluide */
+}
+
+
+
   @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.08); }
@@ -130,7 +176,7 @@
     border-radius: 4px;
     background: #444;
     outline: none;
-    transition: background 0.3s;
+    transition: background 0.5s;
   }
 
   input[type="range"]::-webkit-slider-thumb {
