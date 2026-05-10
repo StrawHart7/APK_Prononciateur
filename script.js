@@ -128,7 +128,7 @@ async function speak() {
     const audioUrl = URL.createObjectURL(audioBlob);
     currentAudio = new Audio(audioUrl);
 
-    currentAudio.addEventListener('loadedmetadata', () => {
+    currentAudio.addEventListener('play', () => {
       startEstimatedHighlight(currentAudio.duration);
     });
 
