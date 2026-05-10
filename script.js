@@ -17,14 +17,11 @@ function setLanguage(lang) {
   setStatus(t.statusReady);
 }
 
-// Détecter le changement de langue
 langSelect.addEventListener('change', (e) => {
   setLanguage(e.target.value);
 });
 
-// Initialiser la langue par défaut
 setLanguage('en');
-
 
 const synth = window.speechSynthesis;
 let utterance;
@@ -40,17 +37,15 @@ const scrollText = document.getElementById("scrollText");
 const rateSlider = document.getElementById("rateSlider");
 const rateValue = document.getElementById("rateValue");
 
-// Chargement des voix
 window.speechSynthesis.onvoiceschanged = () => {
   voices = window.speechSynthesis.getVoices();
   const el = document.getElementById('voiceStatus');
   if (voices.length > 0) {
     el.textContent = `✅ ${voices.length} voix disponibles`;
-    setTimeout(() => el.textContent = '', 3000); // disparaît après 3s
+    setTimeout(() => el.textContent = '', 3000);
   }
 };
 
-// Si la synthèse vocale n’est pas disponible
 if (!('speechSynthesis' in window)) {
   alert("⚠️ Votre navigateur ne supporte pas la lecture vocale.\nEssayez avec Chrome, Brave ou Firefox.");
 }
@@ -76,9 +71,8 @@ function updateRate() {
   currentRate = parseFloat(rateSlider.value);
   rateValue.textContent = currentRate.toFixed(1);
 
-  // Si une lecture est en cours, la relancer avec la nouvelle vitesse
   if (synth.speaking && !isPaused) {
-    const charIndex = currentCharIndex; // on va tracker ça juste après
+    const charIndex = currentCharIndex;
     synth.cancel();
     restartFrom(charIndex);
   }
@@ -148,9 +142,7 @@ function speak() {
   utterance.rate = currentRate;
 
   const googleVoice = voices.find(v => v.name.includes("Google"));
-  if (googleVoice) {
-    utterance.voice = googleVoice;
-  }
+  if (googleVoice) utterance.voice = googleVoice;
 
   utterance.onboundary = function(event) {
     if (event.name === 'word') {
@@ -159,74 +151,21 @@ function speak() {
     }
   };
 
-  utterance.onstart = () => {
-    setStatus(translations[langSelect.value].statusPlaying);
-  };
-
-  utterance.onend = () => {
-    setStatus(translations[langSelect.value].statusFinished);
-  };
+  utterance.onstart = () => setStatus(translations[langSelect.value].statusPlaying);
+  utterance.onend = () => setStatus(translations[langSelect.value].statusFinished);
 
   synth.speak(utterance);
 }
 
-  if (voices.length === 0) {
-    alert("🔊 Les voix ne sont pas encore disponibles. Patiente quelques secondes ou recharge la page.");
-    return;
-  }
-
-  if (!synth || !('SpeechSynthesisUtterance' in window)) {
-    alert("Ce navigateur ne supporte pas la lecture vocale.");
-    return;
-  }
-
-  if (words.length === 0) {
-    prepareText();
-    if (words.length === 0) return;
-  }
-
-  stop();
-
-  utterance = new SpeechSynthesisUtterance(originalText);
-  utterance.lang = langSelect.value === "fr" ? "fr-FR" : "en-US";
-  utterance.rate = currentRate;
-
-  // Forcer une voix Google (si dispo)
-  const googleVoice = voices.find(v => v.name.includes("Google"));
-  if (googleVoice) {
-    utterance.voice = googleVoice;
-  }
-
-  // Suivi du mot
-  utterance.onboundary = function(event) {
-  if (event.name === 'word') {
-    currentCharIndex = event.charIndex;
-    highlightWord(event.charIndex);
-  }
-};
-
-  utterance.onstart = () => {
-  setStatus(translations[langSelect.value].statusPlaying);
-};
-
-utterance.onend = () => {
-  setStatus(translations[langSelect.value].statusFinished);
-};
-
-  synth.speak(utterance);
-
-
 function highlightWord(charIndex) {
   clearHighlight();
-
   if (!originalText) return;
 
-  // Trouver le mot courant en comparant la position charIndex
   let total = 0;
   let wordIndex = 0;
 
   for (let i = 0; i < words.length; i++) {
-    total += words[i].length + 1; // +1 pour l'espace
+    total += words[i].length + 1;
     if (charIndex < total) {
       wordIndex = i;
       break;
@@ -236,21 +175,16 @@ function highlightWord(charIndex) {
   const span = document.querySelector(`[data-index="${wordIndex}"]`);
   if (!span) return;
 
-  // Ajouter la classe active
   span.classList.add("active");
 
-  // Calcul du scroll pour centrer le mot dans le conteneur
   const containerWidth = scrollContainer.offsetWidth;
   const spanOffset = span.offsetLeft + span.offsetWidth / 2;
   const scrollPos = spanOffset - containerWidth / 2;
-
   scrollText.style.transform = `translateX(${-Math.max(0, scrollPos)}px)`;
 }
 
 function clearHighlight() {
-  document.querySelectorAll(".word").forEach(span => {
-    span.classList.remove("active");
-  });
+  document.querySelectorAll(".word").forEach(span => span.classList.remove("active"));
 }
 
 function stop() {
@@ -268,7 +202,7 @@ function clearText() {
   document.getElementById("textInput").value = "";
   scrollText.innerHTML = "";
   words = [];
-setStatus(translations[langSelect.value].statusCleared);
+  setStatus(translations[langSelect.value].statusCleared);
 }
 
 function setStatus(text) {
