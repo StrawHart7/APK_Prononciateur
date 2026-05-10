@@ -1,5 +1,8 @@
 const langSelect = document.getElementById('languageSwitcher');
 
+const ELEVENLABS_API_KEY = "sk_4709a03d26437569ae97cd72db6cedad3599f26d7b738525";
+const VOICE_ID = "hpp4J3VqNfWAUOO0d1Us";
+
 function setLanguage(lang) {
   const t = translations[lang];
 
@@ -23,28 +26,18 @@ langSelect.addEventListener('change', (e) => {
 
 setLanguage('en');
 
-const synth = window.speechSynthesis;
-let utterance;
+let currentAudio = null;
+let highlightInterval = null;
 let words = [];
 let originalText = '';
 let currentRate = 1;
 let voices = [];
 let isPaused = false;
-let currentCharIndex = 0;
 
 const scrollContainer = document.getElementById("scrollContainer");
 const scrollText = document.getElementById("scrollText");
 const rateSlider = document.getElementById("rateSlider");
 const rateValue = document.getElementById("rateValue");
-
-window.speechSynthesis.onvoiceschanged = () => {
-  voices = window.speechSynthesis.getVoices();
-  const el = document.getElementById('voiceStatus');
-  if (voices.length > 0) {
-    el.textContent = `✅ ${voices.length} voix disponibles`;
-    setTimeout(() => el.textContent = '', 3000);
-  }
-};
 
 if (!('speechSynthesis' in window)) {
   alert("⚠️ Votre navigateur ne supporte pas la lecture vocale.\nEssayez avec Chrome, Brave ou Firefox.");
@@ -54,13 +47,15 @@ function togglePause() {
   const btn = document.getElementById('pauseBtn');
   const t = translations[langSelect.value];
 
+  if (!currentAudio) return;
+
   if (isPaused) {
-    synth.resume();
+    currentAudio.play();
     isPaused = false;
     btn.innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
     setStatus(t.statusPlaying);
   } else {
-    synth.pause();
+    currentAudio.pause();
     isPaused = true;
     btn.innerHTML = `<i class="fa-solid fa-play"></i> ${t.resumeBtn}`;
     setStatus(t.statusPaused);
@@ -70,32 +65,9 @@ function togglePause() {
 function updateRate() {
   currentRate = parseFloat(rateSlider.value);
   rateValue.textContent = currentRate.toFixed(1);
-
-  if (synth.speaking && !isPaused) {
-    const charIndex = currentCharIndex;
-    synth.cancel();
-    restartFrom(charIndex);
+  if (currentAudio) {
+    currentAudio.playbackRate = currentRate;
   }
-}
-
-function restartFrom(charIndex) {
-  const remainingText = originalText.slice(charIndex);
-  utterance = new SpeechSynthesisUtterance(remainingText);
-  utterance.lang = langSelect.value === 'fr' ? 'fr-FR' : 'en-US';
-  utterance.rate = currentRate;
-
-  const googleVoice = voices.find(v => v.name.includes('Google'));
-  if (googleVoice) utterance.voice = googleVoice;
-
-  utterance.onboundary = function(event) {
-    if (event.name === 'word') {
-      currentCharIndex = charIndex + event.charIndex;
-      highlightWord(currentCharIndex);
-    }
-  };
-
-  utterance.onend = () => setStatus(translations[langSelect.value].statusFinished);
-  synth.speak(utterance);
 }
 
 function prepareText() {
@@ -119,42 +91,86 @@ function prepareText() {
   setStatus(translations[langSelect.value].statusReady);
 }
 
-function speak() {
-  if (voices.length === 0) {
-    alert("🔊 Les voix ne sont pas encore disponibles. Patiente quelques secondes ou recharge la page.");
-    return;
-  }
-
-  if (!synth || !('SpeechSynthesisUtterance' in window)) {
-    alert("Ce navigateur ne supporte pas la lecture vocale.");
-    return;
-  }
-
+async function speak() {
   if (words.length === 0) {
     prepareText();
     if (words.length === 0) return;
   }
 
   stop();
+  setStatus(translations[langSelect.value].statusLoading);
 
-  utterance = new SpeechSynthesisUtterance(originalText);
-  utterance.lang = langSelect.value === "fr" ? "fr-FR" : "en-US";
-  utterance.rate = currentRate;
+  try {
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: originalText,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75
+          }
+        })
+      }
+    );
 
-  const googleVoice = voices.find(v => v.name.includes("Google"));
-  if (googleVoice) utterance.voice = googleVoice;
-
-  utterance.onboundary = function(event) {
-    if (event.name === 'word') {
-      currentCharIndex = event.charIndex;
-      highlightWord(event.charIndex);
+    if (!response.ok) {
+      throw new Error(`ElevenLabs error: ${response.status}`);
     }
-  };
 
-  utterance.onstart = () => setStatus(translations[langSelect.value].statusPlaying);
-  utterance.onend = () => setStatus(translations[langSelect.value].statusFinished);
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    currentAudio = new Audio(audioUrl);
 
-  synth.speak(utterance);
+    currentAudio.addEventListener('loadedmetadata', () => {
+      startEstimatedHighlight(currentAudio.duration);
+    });
+
+    currentAudio.addEventListener('ended', () => {
+      clearHighlight();
+      clearInterval(highlightInterval);
+      setStatus(translations[langSelect.value].statusFinished);
+    });
+
+    currentAudio.playbackRate = currentRate;
+    currentAudio.play();
+    setStatus(translations[langSelect.value].statusPlaying);
+
+  } catch (err) {
+    console.error(err);
+    setStatus("❌ Erreur ElevenLabs");
+  }
+}
+
+function startEstimatedHighlight(totalDuration) {
+  clearHighlight();
+  clearInterval(highlightInterval);
+
+  let wordIndex = 0;
+  const totalWords = words.length;
+  const timePerWord = (totalDuration * 1000) / totalWords;
+
+  highlightInterval = setInterval(() => {
+    if (wordIndex >= totalWords) {
+      clearInterval(highlightInterval);
+      return;
+    }
+    clearHighlight();
+    const span = document.querySelector(`[data-index="${wordIndex}"]`);
+    if (span) {
+      span.classList.add("active");
+      const containerWidth = scrollContainer.offsetWidth;
+      const spanOffset = span.offsetLeft + span.offsetWidth / 2;
+      scrollText.style.transform = `translateX(${-Math.max(0, spanOffset - containerWidth / 2)}px)`;
+    }
+    wordIndex++;
+  }, timePerWord / currentRate);
 }
 
 function highlightWord(charIndex) {
@@ -188,7 +204,12 @@ function clearHighlight() {
 }
 
 function stop() {
-  synth.cancel();
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.src = "";
+    currentAudio = null;
+  }
+  clearInterval(highlightInterval);
   isPaused = false;
   const btn = document.getElementById('pauseBtn');
   const t = translations[langSelect.value];
