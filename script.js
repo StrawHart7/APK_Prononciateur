@@ -3,12 +3,17 @@ const langSelect = document.getElementById('languageSwitcher');
 function setLanguage(lang) {
   const t = translations[lang];
 
-  document.getElementById('textInput').value = t.textarea;
+  // Ne remplace le textarea que s'il contient le texte par défaut
+  const textarea = document.getElementById('textInput');
+  const defaultTexts = [translations['en'].textarea, translations['fr'].textarea];
+  if (defaultTexts.includes(textarea.value.trim())) {
+    textarea.value = t.textarea;
+  }
+
   document.querySelector('.buttons button:nth-child(1)').textContent = t.loadBtn;
   document.querySelector('.buttons button:nth-child(2)').innerHTML = `<i class="fa-solid fa-play"></i> ${t.playBtn}`;
   document.querySelector('.buttons button:nth-child(3)').innerHTML = `<i class="fa-solid fa-stop"></i> ${t.stopBtn}`;
   document.querySelector('.buttons button:nth-child(4)').innerHTML = `<i class="fa-solid fa-broom"></i> ${t.clearBtn}`;
-  document.getElementById('rateValue').previousSibling.textContent = `${t.speedLabel} : `; // si tu veux changer label vitesse
   setStatus(t.statusReady);
 }
 
@@ -71,7 +76,7 @@ function prepareText() {
 
 function speak() {
   if (!navigator.onLine) {
-    alert("📡 La lecture vocale nécessite une connexion pour charger les voix. Connecte-toi à Internet.");
+    alert("📡 La lecture vocale nécessite une connexion...");
     return;
   }
 

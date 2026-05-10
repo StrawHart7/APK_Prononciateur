@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#00d1b2" />
-    <link rel="shortcut icon" href="assets/icon-192x192.png" type="image/x-icon">
+    <link rel="shortcut icon" href="assets/icon-192x192.png?v=2" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script
       src="https://kit.fontawesome.com/4e67213ea6.js"
@@ -60,15 +60,17 @@ This tool helps you improve your English pronunciation, word by word.</textarea
 
     <script src="translations.js"></script>
     <script src="script.js"></script>
-    <script src="service-worker.js"></script>
     
     <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("service-worker.js")
-          .then(() => console.log("SW enregistré ✅"))
-          .catch((error) => console.error("SW erreur ❌", error));
+      if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(reg => {
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
+    });
+}
+
     </script>
   </body>
 </html>

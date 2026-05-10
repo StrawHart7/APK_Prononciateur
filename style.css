@@ -84,12 +84,6 @@
     margin-bottom: 20px;
   }
 
-  #scrollText {
-    white-space: nowrap;
-    display: inline-block;
-    transition: transform 0.4s ease;
-  }
-
   .word {
     padding: 0 6px;
   }

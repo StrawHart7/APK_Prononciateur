@@ -1,4 +1,4 @@
-const CACHE_NAME = "prononciateur-cache-v3";
+const CACHE_NAME = "prononciateur-cache-v4";
 const FILES_TO_CACHE = [
   "/",
   "/index.html",
@@ -50,5 +50,17 @@ self.addEventListener("fetch", (evt) => {
           return caches.match(evt.request);
         }
       })
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => 
+      Promise.all(
+        cacheNames
+          .filter(name => name !== CACHE_NAME)
+          .map(name => caches.delete(name))
+      )
+    )
   );
 });
