@@ -154,7 +154,7 @@ function startEstimatedHighlight(totalDuration) {
 
   let wordIndex = 0;
   const totalWords = words.length;
-  const timePerWord = (totalDuration * 1000) / totalWords;
+  const timePerWord = (totalDuration * 1000) / totalWords / currentRate;
 
   highlightInterval = setInterval(() => {
     if (wordIndex >= totalWords) {
@@ -170,7 +170,7 @@ function startEstimatedHighlight(totalDuration) {
       scrollText.style.transform = `translateX(${-Math.max(0, spanOffset - containerWidth / 2)}px)`;
     }
     wordIndex++;
-  }, timePerWord / currentRate);
+  }, timePerWord );
 }
 
 function highlightWord(charIndex) {
