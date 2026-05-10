@@ -3,7 +3,6 @@ const langSelect = document.getElementById('languageSwitcher');
 function setLanguage(lang) {
   const t = translations[lang];
 
-  // Ne remplace le textarea que s'il contient le texte par défaut
   const textarea = document.getElementById('textInput');
   const defaultTexts = [translations['en'].textarea, translations['fr'].textarea];
   if (defaultTexts.includes(textarea.value.trim())) {
@@ -12,8 +11,9 @@ function setLanguage(lang) {
 
   document.querySelector('.buttons button:nth-child(1)').textContent = t.loadBtn;
   document.querySelector('.buttons button:nth-child(2)').innerHTML = `<i class="fa-solid fa-play"></i> ${t.playBtn}`;
-  document.querySelector('.buttons button:nth-child(3)').innerHTML = `<i class="fa-solid fa-stop"></i> ${t.stopBtn}`;
-  document.querySelector('.buttons button:nth-child(4)').innerHTML = `<i class="fa-solid fa-broom"></i> ${t.clearBtn}`;
+  document.querySelector('.buttons button:nth-child(3)').innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
+  document.querySelector('.buttons button:nth-child(4)').innerHTML = `<i class="fa-solid fa-stop"></i> ${t.stopBtn}`;
+  document.querySelector('.buttons button:nth-child(5)').innerHTML = `<i class="fa-solid fa-broom"></i> ${t.clearBtn}`;
   setStatus(t.statusReady);
 }
 
@@ -32,6 +32,8 @@ let words = [];
 let originalText = '';
 let currentRate = 1;
 let voices = [];
+let isPaused = false;
+let currentCharIndex = 0;
 
 const scrollContainer = document.getElementById("scrollContainer");
 const scrollText = document.getElementById("scrollText");
@@ -41,6 +43,11 @@ const rateValue = document.getElementById("rateValue");
 // Chargement des voix
 window.speechSynthesis.onvoiceschanged = () => {
   voices = window.speechSynthesis.getVoices();
+  const el = document.getElementById('voiceStatus');
+  if (voices.length > 0) {
+    el.textContent = `✅ ${voices.length} voix disponibles`;
+    setTimeout(() => el.textContent = '', 3000); // disparaît après 3s
+  }
 };
 
 // Si la synthèse vocale n’est pas disponible
@@ -48,9 +55,53 @@ if (!('speechSynthesis' in window)) {
   alert("⚠️ Votre navigateur ne supporte pas la lecture vocale.\nEssayez avec Chrome, Brave ou Firefox.");
 }
 
+function togglePause() {
+  const btn = document.getElementById('pauseBtn');
+  const t = translations[langSelect.value];
+
+  if (isPaused) {
+    synth.resume();
+    isPaused = false;
+    btn.innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
+    setStatus(t.statusPlaying);
+  } else {
+    synth.pause();
+    isPaused = true;
+    btn.innerHTML = `<i class="fa-solid fa-play"></i> ${t.resumeBtn}`;
+    setStatus(t.statusPaused);
+  }
+}
+
 function updateRate() {
   currentRate = parseFloat(rateSlider.value);
   rateValue.textContent = currentRate.toFixed(1);
+
+  // Si une lecture est en cours, la relancer avec la nouvelle vitesse
+  if (synth.speaking && !isPaused) {
+    const charIndex = currentCharIndex; // on va tracker ça juste après
+    synth.cancel();
+    restartFrom(charIndex);
+  }
+}
+
+function restartFrom(charIndex) {
+  const remainingText = originalText.slice(charIndex);
+  utterance = new SpeechSynthesisUtterance(remainingText);
+  utterance.lang = langSelect.value === 'fr' ? 'fr-FR' : 'en-US';
+  utterance.rate = currentRate;
+
+  const googleVoice = voices.find(v => v.name.includes('Google'));
+  if (googleVoice) utterance.voice = googleVoice;
+
+  utterance.onboundary = function(event) {
+    if (event.name === 'word') {
+      currentCharIndex = charIndex + event.charIndex;
+      highlightWord(currentCharIndex);
+    }
+  };
+
+  utterance.onend = () => setStatus(translations[langSelect.value].statusFinished);
+  synth.speak(utterance);
 }
 
 function prepareText() {
@@ -75,10 +126,49 @@ function prepareText() {
 }
 
 function speak() {
-  if (!navigator.onLine) {
-    alert("📡 La lecture vocale nécessite une connexion...");
+  if (voices.length === 0) {
+    alert("🔊 Les voix ne sont pas encore disponibles. Patiente quelques secondes ou recharge la page.");
     return;
   }
+
+  if (!synth || !('SpeechSynthesisUtterance' in window)) {
+    alert("Ce navigateur ne supporte pas la lecture vocale.");
+    return;
+  }
+
+  if (words.length === 0) {
+    prepareText();
+    if (words.length === 0) return;
+  }
+
+  stop();
+
+  utterance = new SpeechSynthesisUtterance(originalText);
+  utterance.lang = langSelect.value === "fr" ? "fr-FR" : "en-US";
+  utterance.rate = currentRate;
+
+  const googleVoice = voices.find(v => v.name.includes("Google"));
+  if (googleVoice) {
+    utterance.voice = googleVoice;
+  }
+
+  utterance.onboundary = function(event) {
+    if (event.name === 'word') {
+      currentCharIndex = event.charIndex;
+      highlightWord(event.charIndex);
+    }
+  };
+
+  utterance.onstart = () => {
+    setStatus(translations[langSelect.value].statusPlaying);
+  };
+
+  utterance.onend = () => {
+    setStatus(translations[langSelect.value].statusFinished);
+  };
+
+  synth.speak(utterance);
+}
 
   if (voices.length === 0) {
     alert("🔊 Les voix ne sont pas encore disponibles. Patiente quelques secondes ou recharge la page.");
@@ -108,11 +198,12 @@ function speak() {
   }
 
   // Suivi du mot
-  utterance.onboundary = function (event) {
-    if (event.name === "word") {
-      highlightWord(event.charIndex);
-    }
-  };
+  utterance.onboundary = function(event) {
+  if (event.name === 'word') {
+    currentCharIndex = event.charIndex;
+    highlightWord(event.charIndex);
+  }
+};
 
   utterance.onstart = () => {
   setStatus(translations[langSelect.value].statusPlaying);
@@ -123,7 +214,7 @@ utterance.onend = () => {
 };
 
   synth.speak(utterance);
-}
+
 
 function highlightWord(charIndex) {
   clearHighlight();
@@ -164,8 +255,12 @@ function clearHighlight() {
 
 function stop() {
   synth.cancel();
+  isPaused = false;
+  const btn = document.getElementById('pauseBtn');
+  const t = translations[langSelect.value];
+  btn.innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
   clearHighlight();
-setStatus(translations[langSelect.value].statusStopped);
+  setStatus(t.statusStopped);
 }
 
 function clearText() {

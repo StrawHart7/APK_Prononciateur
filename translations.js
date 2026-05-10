@@ -9,7 +9,10 @@ const translations = {
     statusReady: "Ready to speak",
     statusPlaying: "Reading...",
     statusStopped: "Reading stopped",
-    statusFinished: "Reading finished"
+    statusFinished: "Reading finished",
+    pauseBtn: "Pause",
+    resumeBtn: "Resume",
+    statusPaused: "Paused"
   },
   fr: {
     textarea: "Cet outil vous aide à améliorer votre prononciation en français, mot par mot.",
@@ -21,6 +24,9 @@ const translations = {
     statusReady: "Prêt à parler",
     statusPlaying: "Lecture en cours...",
     statusStopped: "Lecture stoppée",
-    statusFinished: "Lecture terminée."
+    statusFinished: "Lecture terminée.",
+    pauseBtn: "Pause",
+    resumeBtn: "Reprendre",
+    statusPaused: "En pause"
   }
 };

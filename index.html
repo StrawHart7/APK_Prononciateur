@@ -26,18 +26,19 @@
       <option value="fr">Français</option>
     </select>
 
+    <p id="voiceStatus" style="font-size:13px; color:#aaa; margin-bottom:10px;"></p>
+
     <textarea id="textInput">
 This tool helps you improve your English pronunciation, word by word.</textarea
     >
 
     <div class="buttons">
-      <button onclick="prepareText()">Charger</button>
-      <button onclick="speak()"><i class="fa-solid fa-play"></i> Lire</button>
-      <button onclick="stop()"><i class="fa-solid fa-stop"></i> Stop</button>
-      <button onclick="clearText()">
-        <i class="fa-solid fa-broom"></i> Effacer
-      </button>
-    </div>
+  <button onclick="prepareText()">Charger</button>
+  <button onclick="speak()"><i class="fa-solid fa-play"></i> Lire</button>
+  <button onclick="togglePause()" id="pauseBtn"><i class="fa-solid fa-pause"></i> Pause</button>
+  <button onclick="stop()"><i class="fa-solid fa-stop"></i> Stop</button>
+  <button onclick="clearText()"><i class="fa-solid fa-broom"></i> Effacer</button>
+</div>
 
     <div class="speed-control">
       Vitesse : <span id="rateValue">1.0</span>x <br />
