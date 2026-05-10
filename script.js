@@ -3,6 +3,20 @@ const langSelect = document.getElementById('languageSwitcher');
 const ELEVENLABS_API_KEY = "sk_4709a03d26437569ae97cd72db6cedad3599f26d7b738525";
 const VOICE_ID = "hpp4J3VqNfWAUOO0d1Us";
 
+const state = {
+  currentAudio: null,
+  highlightInterval: null,
+  words: [],
+  originalText: '',
+  currentRate: 1,
+  isPaused: false
+};
+
+const scrollContainer = document.getElementById("scrollContainer");
+const scrollText = document.getElementById("scrollText");
+const rateSlider = document.getElementById("rateSlider");
+const rateValue = document.getElementById("rateValue");
+
 function setLanguage(lang) {
   const t = translations[lang];
 
@@ -12,61 +26,40 @@ function setLanguage(lang) {
     textarea.value = t.textarea;
   }
 
-  document.querySelector('.buttons button:nth-child(1)').textContent = t.loadBtn;
-  document.querySelector('.buttons button:nth-child(2)').innerHTML = `<i class="fa-solid fa-play"></i> ${t.playBtn}`;
-  document.querySelector('.buttons button:nth-child(3)').innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
-  document.querySelector('.buttons button:nth-child(4)').innerHTML = `<i class="fa-solid fa-stop"></i> ${t.stopBtn}`;
-  document.querySelector('.buttons button:nth-child(5)').innerHTML = `<i class="fa-solid fa-broom"></i> ${t.clearBtn}`;
+  document.getElementById('loadBtn').textContent = t.loadBtn;
+  document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-play"></i> ${t.playBtn}`;
+  document.getElementById('pauseBtn').innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
+  document.getElementById('stopBtn').innerHTML = `<i class="fa-solid fa-stop"></i> ${t.stopBtn}`;
+  document.getElementById('clearBtn').innerHTML = `<i class="fa-solid fa-broom"></i> ${t.clearBtn}`;
   setStatus(t.statusReady);
 }
 
-langSelect.addEventListener('change', (e) => {
-  setLanguage(e.target.value);
-});
-
+langSelect.addEventListener('change', (e) => setLanguage(e.target.value));
 setLanguage('en');
-
-let currentAudio = null;
-let highlightInterval = null;
-let words = [];
-let originalText = '';
-let currentRate = 1;
-let voices = [];
-let isPaused = false;
-
-const scrollContainer = document.getElementById("scrollContainer");
-const scrollText = document.getElementById("scrollText");
-const rateSlider = document.getElementById("rateSlider");
-const rateValue = document.getElementById("rateValue");
-
-if (!('speechSynthesis' in window)) {
-  alert("⚠️ Votre navigateur ne supporte pas la lecture vocale.\nEssayez avec Chrome, Brave ou Firefox.");
-}
 
 function togglePause() {
   const btn = document.getElementById('pauseBtn');
   const t = translations[langSelect.value];
+  if (!state.currentAudio) return;
 
-  if (!currentAudio) return;
-
-  if (isPaused) {
-    currentAudio.play();
-    isPaused = false;
+  if (state.isPaused) {
+    state.currentAudio.play();
+    state.isPaused = false;
     btn.innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
     setStatus(t.statusPlaying);
   } else {
-    currentAudio.pause();
-    isPaused = true;
+    state.currentAudio.pause();
+    state.isPaused = true;
     btn.innerHTML = `<i class="fa-solid fa-play"></i> ${t.resumeBtn}`;
     setStatus(t.statusPaused);
   }
 }
 
 function updateRate() {
-  currentRate = parseFloat(rateSlider.value);
-  rateValue.textContent = currentRate.toFixed(1);
-  if (currentAudio) {
-    currentAudio.playbackRate = currentRate;
+  state.currentRate = parseFloat(rateSlider.value);
+  rateValue.textContent = state.currentRate.toFixed(1);
+  if (state.currentAudio) {
+    state.currentAudio.playbackRate = state.currentRate;
   }
 }
 
@@ -75,12 +68,11 @@ function prepareText() {
   const input = document.getElementById("textInput").value.trim();
   if (!input) return;
 
-  originalText = input;
-  const wordArray = input.split(/\s+/);
-  words = wordArray;
+  state.originalText = input;
+  state.words = input.split(/\s+/);
 
   scrollText.innerHTML = "";
-  wordArray.forEach((word, index) => {
+  state.words.forEach((word, index) => {
     const span = document.createElement("span");
     span.textContent = word + " ";
     span.classList.add("word");
@@ -92,9 +84,9 @@ function prepareText() {
 }
 
 async function speak() {
-  if (words.length === 0) {
+  if (state.words.length === 0) {
     prepareText();
-    if (words.length === 0) return;
+    if (state.words.length === 0) return;
   }
 
   stop();
@@ -110,7 +102,7 @@ async function speak() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          text: originalText,
+          text: state.originalText,
           model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: 0.5,
@@ -120,26 +112,23 @@ async function speak() {
       }
     );
 
-    if (!response.ok) {
-      throw new Error(`ElevenLabs error: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`ElevenLabs error: ${response.status}`);
 
     const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    currentAudio = new Audio(audioUrl);
+    state.currentAudio = new Audio(URL.createObjectURL(audioBlob));
 
-    currentAudio.addEventListener('play', () => {
-      startEstimatedHighlight(currentAudio.duration);
+    state.currentAudio.addEventListener('play', () => {
+      startEstimatedHighlight(state.currentAudio.duration);
     });
 
-    currentAudio.addEventListener('ended', () => {
+    state.currentAudio.addEventListener('ended', () => {
       clearHighlight();
-      clearInterval(highlightInterval);
+      clearInterval(state.highlightInterval);
       setStatus(translations[langSelect.value].statusFinished);
     });
 
-    currentAudio.playbackRate = currentRate;
-    currentAudio.play();
+    state.currentAudio.playbackRate = state.currentRate;
+    state.currentAudio.play();
     setStatus(translations[langSelect.value].statusPlaying);
 
   } catch (err) {
@@ -150,15 +139,15 @@ async function speak() {
 
 function startEstimatedHighlight(totalDuration) {
   clearHighlight();
-  clearInterval(highlightInterval);
+  clearInterval(state.highlightInterval);
 
   let wordIndex = 0;
-  const totalWords = words.length;
-  const timePerWord = (totalDuration * 1000) / totalWords / currentRate;
+  const totalWords = state.words.length;
+  const timePerWord = (totalDuration * 1000) / totalWords / state.currentRate;
 
-  highlightInterval = setInterval(() => {
+  state.highlightInterval = setInterval(() => {
     if (wordIndex >= totalWords) {
-      clearInterval(highlightInterval);
+      clearInterval(state.highlightInterval);
       return;
     }
     clearHighlight();
@@ -170,33 +159,7 @@ function startEstimatedHighlight(totalDuration) {
       scrollText.style.transform = `translateX(${-Math.max(0, spanOffset - containerWidth / 2)}px)`;
     }
     wordIndex++;
-  }, timePerWord );
-}
-
-function highlightWord(charIndex) {
-  clearHighlight();
-  if (!originalText) return;
-
-  let total = 0;
-  let wordIndex = 0;
-
-  for (let i = 0; i < words.length; i++) {
-    total += words[i].length + 1;
-    if (charIndex < total) {
-      wordIndex = i;
-      break;
-    }
-  }
-
-  const span = document.querySelector(`[data-index="${wordIndex}"]`);
-  if (!span) return;
-
-  span.classList.add("active");
-
-  const containerWidth = scrollContainer.offsetWidth;
-  const spanOffset = span.offsetLeft + span.offsetWidth / 2;
-  const scrollPos = spanOffset - containerWidth / 2;
-  scrollText.style.transform = `translateX(${-Math.max(0, scrollPos)}px)`;
+  }, timePerWord);
 }
 
 function clearHighlight() {
@@ -204,16 +167,15 @@ function clearHighlight() {
 }
 
 function stop() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.src = "";
-    currentAudio = null;
+  if (state.currentAudio) {
+    state.currentAudio.pause();
+    state.currentAudio.src = "";
+    state.currentAudio = null;
   }
-  clearInterval(highlightInterval);
-  isPaused = false;
-  const btn = document.getElementById('pauseBtn');
+  clearInterval(state.highlightInterval);
+  state.isPaused = false;
   const t = translations[langSelect.value];
-  btn.innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
+  document.getElementById('pauseBtn').innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
   clearHighlight();
   setStatus(t.statusStopped);
 }
@@ -222,7 +184,7 @@ function clearText() {
   stop();
   document.getElementById("textInput").value = "";
   scrollText.innerHTML = "";
-  words = [];
+  state.words = [];
   setStatus(translations[langSelect.value].statusCleared);
 }
 
